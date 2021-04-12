@@ -33,13 +33,12 @@ model = cp_model.CpModel()
 x1 = [model.NewIntVar(0,max_W,'x1['+str(i)+']') for i in range(N)]
 y1 = [model.NewIntVar(0,max_L,'y1['+str(i)+']') for i in range(N)]
 o = [model.NewBoolVar('o['+str(i)+']') for i in range(N)]
-p = [[model.NewIntVar(0, 1, 'p['+str(i)+','+str(j)+']') for j in range(K)] for i in range(N)]
+p = [model.NewIntVar(0,K-1,'p['+str(i)+']') for i in range(N)]
 # extra variables
 x2 = [model.NewIntVar(0,max_W,'x2['+str(i)+']') for i in range(N)]
 y2 = [model.NewIntVar(0,max_L,'y2['+str(i)+']') for i in range(N)]
 t = [[model.NewBoolVar('t['+str(i1)+','+str(i2)+']') for i2 in range(N)] for i1 in range(N)]
 p_bool = [[model.NewBoolVar('p_bool['+str(i)+','+str(j)+']') for j in range(K)] for i in range(N)]
-p_n = [model.NewIntVar(0,K-1,'y2['+str(i)+']') for i in range(N)]
 u = [model.NewIntVar(0, 1, 'u['+str(j)+']') for j in range(K)]
 u_bool = [model.NewBoolVar('u_bool['+str(j)+']') for j in range(K)]
 
@@ -67,10 +66,8 @@ for j in range(K):
 
 for i in range(N):
     for j in range(K):
-        model.Add(p[i][j]==1).OnlyEnforceIf(p_bool[i][j])
-        model.Add(p[i][j]==0).OnlyEnforceIf(p_bool[i][j].Not())
-        model.Add(p_n[i]==j).OnlyEnforceIf(p_bool[i][j])
-        model.Add(p_n[i]!=j).OnlyEnforceIf(p_bool[i][j].Not())
+        model.Add(p[i]==j).OnlyEnforceIf(p_bool[i][j])
+        model.Add(p[i]!=j).OnlyEnforceIf(p_bool[i][j].Not())
         # constraint: don't put package out of the truck
         model.Add(x2[i]<=W[j]).OnlyEnforceIf(p_bool[i][j])
         model.Add(y2[i]<=L[j]).OnlyEnforceIf(p_bool[i][j])
@@ -81,16 +78,11 @@ for i in range(N):
     model.Add( (x2[i]-x1[i])==w[i] ).OnlyEnforceIf(o[i].Not())
     model.Add( (y2[i]-y1[i])==l[i] ).OnlyEnforceIf(o[i].Not())
 
-for i in range(N):
-    model.Add(sum(p[i][j] for j in range(K))==1)
-
 for i1 in range(N):
     for i2 in range(N):
-        # model.AddBoolAnd([p_bool[i1][j], p_bool[i2][j]]).OnlyEnforceIf(t[i1][i2])
-        # model.AddBoolOr([p_bool[i1][j].Not(), p_bool[i2][j].Not()]).OnlyEnforceIf(t[i1][i2].Not())
         if i1 != i2:
-            model.Add(p_n[i1]==p_n[i2]).OnlyEnforceIf(t[i1][i2])
-            model.Add(p_n[i1]!=p_n[i2]).OnlyEnforceIf(t[i1][i2].Not())
+            model.Add(p[i1]==p[i2]).OnlyEnforceIf(t[i1][i2])
+            model.Add(p[i1]!=p[i2]).OnlyEnforceIf(t[i1][i2].Not())
             model.AddBoolOr([xmn[i1][i2], ymn[i1][i2], xnm[i1][i2], ynm[i1][i2]]).OnlyEnforceIf(t[i1][i2])
 
 # obj = model.NewIntVar(0, sum_c, 'obj')
