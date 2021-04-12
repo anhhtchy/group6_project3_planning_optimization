@@ -13,8 +13,8 @@ def input(filename):
         return N, K, w, l, W, L, c
 
 N, K, w, l, W, L, c = input('data/data-12.txt')
-# max_W = max(W)
-# max_L = max(L)
+max_W = max(W)
+max_L = max(L)
 sum_c = sum(c)
 
 print(N, K)

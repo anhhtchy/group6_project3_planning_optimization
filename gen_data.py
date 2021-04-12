@@ -16,5 +16,5 @@ def genData(filename, n):
         f.write(str(W_j)+' '+str(L_j)+' '+str(c_j)+'\n')
     f.close()
 
-n = 13
+n = 12
 genData('data/data-{}.txt'.format(n), n)
