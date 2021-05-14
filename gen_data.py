@@ -12,9 +12,9 @@ def genData(filename, n):
     for j in range(K):
         W_j = rd.randint(minWL, maxWL)
         L_j = rd.randint(minWL, maxWL)
-        c_j = rd.randint(1, K)
+        c_j = 10*(W_j+L_j)
         f.write(str(W_j)+' '+str(L_j)+' '+str(c_j)+'\n')
     f.close()
 
-n = 12
+n = 6
 genData('data/data-{}.txt'.format(n), n)
