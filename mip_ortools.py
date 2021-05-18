@@ -15,7 +15,7 @@ def input(filename):
             [W[j], L[j], c[j]] = [int(x) for x in f.readline().split()]
         return N, K, w, l, W, L, c
 
-N, K, w, l, W, L, c = input('data/test-data-1.txt')
+N, K, w, l, W, L, c = input('data/data.txt')
 max_W = max(W)
 max_L = max(L)
 sum_c = sum(c)
@@ -38,7 +38,7 @@ o = [solver.IntVar(0, 1, 'o('+str(i)+')') for i in range(N)]
 
 x2 = [solver.IntVar(0, max_W, 'x2('+str(i)+')') for i in range(N)] 
 y2 = [solver.IntVar(0, max_L, 'y2('+str(i)+')') for i in range(N)]
-u = [solver.IntVar(0, 1, 'u('+str(i)+')') for i in range(N)]
+u = [solver.IntVar(0, 1, 'u('+str(i)+')') for i in range(K)]
 
 p = [[solver.IntVar(0, 1, 'p('+str(i)+','+str(j)+')') for j in range(K)] for i in range(N)]
 np = [solver.IntVar(0, N, 'np('+str(j)+')') for j in range(K)]
@@ -135,6 +135,6 @@ if result_status == pywraplp.Solver.OPTIMAL:
     for i in range(N):
         for j in range(K):
             if(p[i][j].solution_value()>0):
-                print('package {} at truck {}, bottom-left: ({}, {}), top-right: ({}, {})'.format(i, j, \
-                    x1[i].solution_value(), y1[i].solution_value(), x2[i].solution_value(), y2[i].solution_value()))
+                print('package {} at truck {}, orientation {}, bottom-left: ({}, {}), top-right: ({}, {})'.format(i, j, \
+                    o[i].solution_value(), x1[i].solution_value(), y1[i].solution_value(), x2[i].solution_value(), y2[i].solution_value()))
         

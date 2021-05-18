@@ -2,20 +2,22 @@ from ortools.sat.python import cp_model
 import time
 
 def input(filename):
+    total_area = 0
     with open(filename, 'r') as f:
         [N, K] = [int(x) for x in f.readline().split()]
         w = [0 for i in range(N)]
         l = [0 for i in range(N)]
         for i in range(N):
             [w[i], l[i]] = [int(x) for x in f.readline().split()]
+            total_area += w[i]*l[i]
         W = [0 for i in range(K)]
         L = [0 for i in range(K)]
         c = [0 for i in range(K)]
         for j in range(K):
             [W[j], L[j], c[j]] = [int(x) for x in f.readline().split()]
-        return N, K, w, l, W, L, c
+        return N, K, w, l, W, L, c, total_area
 
-N, K, w, l, W, L, c = input('data/test-data-1.txt')
+N, K, w, l, W, L, c, total_area = input('data/data.txt')
 max_W = max(W)
 max_L = max(L)
 sum_c = sum(c)
@@ -26,7 +28,7 @@ for i in range(N):
 print('========')
 for j in range(K):
     print('truck', j,':', W[j], L[j], c[j])
-print(max_W, max_L, sum_c)
+print("max_W: {}, max_L: {}, sum_c: {}, total_area: {}".format(max_W, max_L, sum_c, total_area))
 
 model = cp_model.CpModel()
 # variables
@@ -98,7 +100,7 @@ if status == cp_model.OPTIMAL:
     for i in range(N):
         for j in range(K):
             if(solver.Value(p_bool[i][j])):
-                print('package {} at truck {}, bottom-left: ({}, {}), top-right: ({}, {})'.format(i, j, \
-                    solver.Value(x1[i]), solver.Value(y1[i]), solver.Value(x2[i]), solver.Value(y2[i])))
+                print('package {} at truck {}, orientation {}, bottom-left: ({}, {}), top-right: ({}, {})'.format(i, j, \
+                    solver.Value(o[i]), solver.Value(x1[i]), solver.Value(y1[i]), solver.Value(x2[i]), solver.Value(y2[i])))
 else:
     print(solver.StatusName(status))        
