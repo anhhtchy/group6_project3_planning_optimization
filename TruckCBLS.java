@@ -29,6 +29,7 @@ public class TruckCBLS {
 	int[] L;
 	int[] c;
 	
+	int bestCost;
 	int maxW = 0;
 	int maxL = 0;
 	int sumC = 0;
@@ -68,14 +69,16 @@ public class TruckCBLS {
 		y1 = new VarIntLS[N];
 		p = new VarIntLS[N];
 		o = new VarIntLS[N];
-		u = new VarIntLS[N];
+		u = new VarIntLS[K];
 		
 		for(int i = 0; i < N; i++) {
 			x1[i] = new VarIntLS(mgr, 0, maxW);
 			y1[i] = new VarIntLS(mgr, 0, maxL);
 			p[i] = new VarIntLS(mgr, 0, K-1);
 			o[i] = new VarIntLS(mgr, 0, 1);
-			u[i] = new VarIntLS(mgr, 0, 1);
+		}
+		for(int j = 0; j < K; j++) {
+			u[j] = new VarIntLS(mgr, 0, 1);
 		}
 		
 		x2 = new IFunction[N];
@@ -137,140 +140,110 @@ public class TruckCBLS {
 		mgr.close();
 	}
 	class Move{
-		static final int MOVE_O = 0;
-		static final int MOVE_X1 = 1;
-		static final int MOVE_Y1 = 2;
-		static final int MOVE_P = 3;
-		static final int MOVE_U = 4;
-		
-		int type;
 		int i;
-		int v;
-		public Move(int type, int i, int v){
-			this.type = type; this.i = i; this.v = v;
+		int o_i;
+		int x1_i;
+		int y1_i;
+		int p_i;
+		int j;
+		int u_j;
+		public Move(int i, int o_i, int x1_i, int y1_i, int p_i, int j, int u_j){
+			this.i = i; this.o_i = o_i; this.x1_i = x1_i; this.y1_i = y1_i; this.p_i = p_i;
+			this.j = j; this.u_j = u_j;
 		}
 	}
-	public void search(int maxIters, int maxTime) {
+//	public void moveU() {
+//		for(int j = 0; j < K; j++) {
+//			if(CS.getAssignDelta(u[j], 1-u[j].getValue()) < 0) {
+//				u[j].setValuePropagate(1-u[j].getValue());
+//			}
+//		}
+//	}
+	public void search(int maxTime) {
 		int it = 0;
 		Random R = new Random();
 		System.out.println("Init, CS = " + CS.violations() + " obj = " + obj.getValue());
 		
 		ArrayList<Move> cand = new ArrayList<Move>();
 		double t0 = System.currentTimeMillis();
-		while(it < maxIters){
+		boolean isMaxTime = false;
+		while(!isMaxTime){
 			int minDeltaC = Integer.MAX_VALUE;
 			int minDeltaF = Integer.MAX_VALUE;
+			int oldC = CS.violations();
+			int oldF = obj.getValue();
 			for(int i = 0; i < N; i++){
-				for(int v = o[i].getMinValue(); v <= o[i].getMaxValue(); v++){
-					double t= System.currentTimeMillis() - t0;
-					if(t > maxTime){
-						System.out.println("Time limit exceeded!");
+				int old_o = o[i].getValue();
+				int old_x1 = x1[i].getValue(); int old_y1 = y1[i].getValue();
+				int old_p = p[i].getValue();
+				
+				for(int o_i = o[i].getMinValue(); o_i <= o[i].getMaxValue(); o_i++){
+					o[i].setValuePropagate(o_i);
+					for(int x1_i = x1[i].getMinValue(); x1_i <= x1[i].getMaxValue(); x1_i++) {
+						x1[i].setValuePropagate(x1_i);
+						for(int y1_i = y1[i].getMinValue(); y1_i <= y1[i].getMaxValue(); y1_i++) {
+							y1[i].setValuePropagate(y1_i);
+							for(int p_i = p[i].getMinValue(); p_i <= p[i].getMaxValue(); p_i++) {
+								p[i].setValuePropagate(p_i);
+								for(int j = 0; j < K; j++) {
+									int old_u = u[j].getValue();
+									for(int u_j = 0; u_j <= 1; u_j++) {
+										double t= System.currentTimeMillis() - t0;
+										if(t > maxTime){
+											System.out.println("Time limit exceeded!");
+											o[i].setValuePropagate(old_o); p[i].setValuePropagate(old_p);
+											x1[i].setValuePropagate(old_x1); y1[i].setValuePropagate(old_y1);
+//											moveU();
+											isMaxTime = true;
+											break;
+										}
+										u[j].setValuePropagate(u_j);
+//										moveU();
+										int deltaC = CS.violations() - oldC;
+										int deltaF = obj.getValue() - oldF;
+										if(deltaC < minDeltaC || deltaC == minDeltaC && deltaF < minDeltaF){
+											cand.clear();
+											cand.add(new Move(i, o_i, x1_i, y1_i, p_i, j, u_j));
+											minDeltaC = deltaC; minDeltaF = deltaF;
+										}else if(deltaC == minDeltaC && deltaF == minDeltaF){
+											cand.add(new Move(i, o_i, x1_i, y1_i, p_i, j, u_j));
+										}
+									}
+									u[j].setValuePropagate(old_u);
+								}
+							}
+							if(isMaxTime) {
+								break;
+							}
+						}
+						if(isMaxTime) {
+							break;
+						}
+					}
+					if(isMaxTime) {
 						break;
 					}
-					int deltaC = CS.getAssignDelta(o[i], v);
-					int deltaF = obj.getAssignDelta(o[i], v);
-					if(deltaC < minDeltaC || deltaC == minDeltaC && deltaF < minDeltaF){
-						cand.clear();
-						cand.add(new Move(Move.MOVE_O, i, v));
-						minDeltaC = deltaC; minDeltaF = deltaF;
-					}else if(deltaC == minDeltaC && deltaF == minDeltaF){
-						cand.add(new Move(Move.MOVE_O, i, v));
-					}
 				}
-			}
-			for(int i = 0; i < N; i++){
-				for(int v = x1[i].getMinValue(); v <= x1[i].getMaxValue(); v++){
-					double t= System.currentTimeMillis() - t0;
-					if(t > maxTime){
-						System.out.println("Time limit exceeded!");
-						break;
-					}
-					
-					int deltaC = CS.getAssignDelta(x1[i], v);
-					int deltaF = obj.getAssignDelta(x1[i], v);
-					if(deltaC < minDeltaC || deltaC == minDeltaC && deltaF < minDeltaF){
-						cand.clear();
-						cand.add(new Move(Move.MOVE_X1, i, v));
-						minDeltaC = deltaC; minDeltaF = deltaF;
-					}else if(deltaC == minDeltaC && deltaF == minDeltaF){
-						cand.add(new Move(Move.MOVE_X1, i, v));
-					}
+				if(isMaxTime) {
+					break;
 				}
-			}
-			for(int i = 0; i < N; i++){
-				for(int v = y1[i].getMinValue(); v <= y1[i].getMaxValue(); v++){
-					double t= System.currentTimeMillis() - t0;
-					if(t > maxTime){
-						System.out.println("Time limit exceeded!");
-						break;
-					}
-					
-					int deltaC = CS.getAssignDelta(y1[i], v);
-					int deltaF = obj.getAssignDelta(y1[i], v);
-					if(deltaC < minDeltaC || deltaC == minDeltaC && deltaF < minDeltaF){
-						cand.clear();
-						cand.add(new Move(Move.MOVE_Y1, i, v));
-						minDeltaC = deltaC; minDeltaF = deltaF;
-					}else if(deltaC == minDeltaC && deltaF == minDeltaF){
-						cand.add(new Move(Move.MOVE_Y1, i, v));
-					}
-				}
-			}
-			for(int i = 0; i < N; i++){
-				for(int v = p[i].getMinValue(); v <= p[i].getMaxValue(); v++){
-					double t= System.currentTimeMillis() - t0;
-					if(t > maxTime){
-						System.out.println("Time limit exceeded!");
-						break;
-					}
-					
-					int deltaC = CS.getAssignDelta(p[i], v);
-					int deltaF = obj.getAssignDelta(p[i], v);
-					if(deltaC < minDeltaC || deltaC == minDeltaC && deltaF < minDeltaF){
-						cand.clear();
-						cand.add(new Move(Move.MOVE_P, i, v));
-						minDeltaC = deltaC; minDeltaF = deltaF;
-					}else if(deltaC == minDeltaC && deltaF == minDeltaF){
-						cand.add(new Move(Move.MOVE_P, i, v));
-					}
-				}
-			}
-			for(int i = 0; i < N; i++){
-				for(int v = u[i].getMinValue(); v <= u[i].getMaxValue(); v++){
-					double t= System.currentTimeMillis() - t0;
-					if(t > maxTime){
-						System.out.println("Time limit exceeded!");
-						break;
-					}
-					
-					int deltaC = CS.getAssignDelta(u[i], v);
-					int deltaF = obj.getAssignDelta(u[i], v);
-					if(deltaC < minDeltaC || deltaC == minDeltaC && deltaF < minDeltaF){
-						cand.clear();
-						cand.add(new Move(Move.MOVE_U, i, v));
-						minDeltaC = deltaC; minDeltaF = deltaF;
-					}else if(deltaC == minDeltaC && deltaF == minDeltaF){
-						cand.add(new Move(Move.MOVE_U, i, v));
-					}
-				}
+				o[i].setValuePropagate(old_o); p[i].setValuePropagate(old_p);
+				x1[i].setValuePropagate(old_x1); y1[i].setValuePropagate(old_y1);
+//				moveU();
 			}
 			
 			Move m = cand.get(R.nextInt(cand.size()));
-			if(m.type == Move.MOVE_O) {
-				o[m.i].setValuePropagate(m.v);
-			} else if(m.type == Move.MOVE_X1) {
-				x1[m.i].setValuePropagate(m.v);
-			} else if(m.type == Move.MOVE_Y1) {
-				y1[m.i].setValuePropagate(m.v);
-			} else if(m.type == Move.MOVE_P){
-				p[m.i].setValuePropagate(m.v);
-			} else {
-				u[m.i].setValuePropagate(m.v);
-			}
+			o[m.i].setValuePropagate(m.o_i); p[m.i].setValuePropagate(m.p_i);
+			x1[m.i].setValuePropagate(m.x1_i); y1[m.i].setValuePropagate(m.y1_i);
+			u[m.j].setValuePropagate(m.u_j);
+//			moveU();
 			it++;
 			double t= Math.round((System.currentTimeMillis() - t0)/6)/10000.0;
 			System.out.println("Step it = " + it + " time = " + t + " CS = " + CS.violations() + 
 					" obj = " + obj.getValue());
+			if(CS.violations()==0 && obj.getValue()==bestCost) {
+				break;
+			}
 		}
 	}
 	public void readData(String filename) {
@@ -299,6 +272,8 @@ public class TruckCBLS {
 					maxL = L[j];
 				}
 			}
+			bestCost = in.nextInt();
+//			System.out.println(bestCost);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -325,10 +300,12 @@ public class TruckCBLS {
 	}
 	public static void main(String[] args) {
 		TruckCBLS app = new TruckCBLS();
-		app.readData("data/Truck/test-data-1.txt");
+		app.readData("data/Truck/new_data/data.txt");
+//		app.readData("data/Truck/test-data-1.txt");
 		app.printData();
 		app.stateModel();
-		app.search(1000000, 1800000);
+		int maxTime = 60*15*1000;
+		app.search(maxTime);
 		app.printData();
 		app.printResult();
 	}
