@@ -16,10 +16,10 @@ with open(input_file) as f:
 
     W,L,c = [], [], []
     for _ in range(k):
-        [m,n,q] = [int(x) for x in f.readline().split()]
-        W.append(m)
-        L.append(n)
-        c.append(q)
+        [W_,L_,c_] = [int(x) for x in f.readline().split()]
+        W.append(W_)
+        L.append(L_)
+        c.append(c_)
 
 x1 = {}
 y1 = {}
