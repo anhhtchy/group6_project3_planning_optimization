@@ -273,6 +273,22 @@ public class TruckCBLS {
 				}
 			}
 			bestCost = in.nextInt();
+			int temp;
+			for(int j = 0; j < K; j++) {
+				for(int j1 = j+1; j1 < K; j1++) {
+					if(c[j1] < c[j]) {
+						temp = W[j];
+						W[j] = W[j1];
+						W[j1] = temp;
+						temp = L[j];
+						L[j] = L[j1];
+						L[j1] = temp;
+						temp = c[j];
+						c[j] = c[j1];
+						c[j1] = temp;
+					}
+				}
+			}
 //			System.out.println(bestCost);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -300,7 +316,7 @@ public class TruckCBLS {
 	}
 	public static void main(String[] args) {
 		TruckCBLS app = new TruckCBLS();
-		app.readData("data/Truck/new_data/data.txt");
+		app.readData("data/Truck/new_data/data_10.txt");
 //		app.readData("data/Truck/test-data-1.txt");
 		app.printData();
 		app.stateModel();
